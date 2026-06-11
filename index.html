@@ -1,0 +1,2183 @@
+
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Passport Photo Pro - Batch Editor & Creator</title>
+    <!-- Tailwind CSS for Responsive Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Premium Sans-Serif Look -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Intuitive UI Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- MediaPipe Selfie Segmentation for Local Background Removal -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+    <!-- MediaPipe Face Mesh for Auto Face & Eye Alignment -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <!-- JSZip for Downloading the Processed Images together in a Single ZIP Archive -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Custom scrollbar adjustments */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 flex flex-col justify-between overflow-x-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-id-card text-white text-lg"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-blue-400 bg-clip-text text-transparent">PassPort AI</span>
+                    <span class="text-xs block text-slate-400 font-medium leading-none">Batch Processing Engine</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full text-slate-300 border border-slate-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Local GPU Engine Active</span>
+                </div>
+                <button onclick="resetApp()" class="text-xs hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 transition duration-200">
+                    <i class="fa-solid fa-arrows-rotate mr-1"></i> Reset Engine
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left">
+        
+        <!-- Interactive Step Wizard -->
+        <div class="max-w-3xl mx-auto mb-10">
+            <div class="flex items-center justify-between relative">
+                <!-- Line background -->
+                <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-800 rounded-full z-0"></div>
+                <div id="step-line" class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full z-0 transition-all duration-300" style="width: 0%;"></div>
+                
+                <!-- Step 1 -->
+                <div class="step-node relative z-10 flex flex-col items-center group cursor-pointer" onclick="goToStep(1)">
+                    <div id="step-circle-1" class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm transition-all border-4 border-slate-900 shadow-lg shadow-blue-500/10">
+                        1
+                    </div>
+                    <span class="text-[11px] mt-2 font-semibold text-blue-500" id="step-text-1">Upload</span>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step-node relative z-10 flex flex-col items-center group cursor-pointer" onclick="goToStep(2)">
+                    <div id="step-circle-2" class="w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center font-semibold text-sm transition-all border-4 border-slate-900">
+                        2
+                    </div>
+                    <span class="text-[11px] mt-2 font-semibold text-slate-400" id="step-text-2">Crop Align</span>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="step-node relative z-10 flex flex-col items-center group cursor-pointer" onclick="goToStep(3)">
+                    <div id="step-circle-3" class="w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center font-semibold text-sm transition-all border-4 border-slate-900">
+                        3
+                    </div>
+                    <span class="text-[11px] mt-2 font-semibold text-slate-400" id="step-text-3">Background</span>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="step-node relative z-10 flex flex-col items-center group cursor-pointer" onclick="goToStep(4)">
+                    <div id="step-circle-4" class="w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center font-semibold text-sm transition-all border-4 border-slate-900">
+                        4
+                    </div>
+                    <span class="text-[11px] mt-2 font-semibold text-slate-400" id="step-text-4">Download</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning and Notification Banner -->
+        <div id="notification-banner" class="max-w-5xl mx-auto mb-6 hidden">
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-start gap-3">
+                <i class="fa-solid fa-circle-exclamation mt-1"></i>
+                <div class="flex-1 text-left">
+                    <h4 class="font-semibold text-sm">Specification Warning</h4>
+                    <p class="text-xs text-amber-400/90 mt-0.5" id="notification-text"></p>
+                </div>
+                <button onclick="hideNotification()" class="text-amber-400 hover:text-white text-xs"><i class="fa-solid fa-x"></i></button>
+            </div>
+        </div>
+
+        <!-- Work Station Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-7xl mx-auto">
+            
+            <!-- Left Panel: Workspace & Interactive Stages -->
+            <div class="lg:col-span-8 bg-slate-950/40 border border-slate-800/80 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
+                
+                <!-- STEP 1: Upload Panel (Supports Multiple Uploads simultaneously) -->
+                <div id="panel-step-1" class="space-y-6">
+                    <div class="text-center py-8">
+                        <h2 class="text-2xl font-bold tracking-tight text-white mb-2">Upload Batch Photos</h2>
+                        <p class="text-sm text-slate-400 max-w-md mx-auto">You can select and upload multiple images at once. The engine will batch-process them according to your parameters.</p>
+                    </div>
+
+                    <!-- Drag & Drop Zone -->
+                    <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-slate-900/50 rounded-2xl p-10 transition duration-300 cursor-pointer flex flex-col items-center justify-center gap-4 group">
+                        <!-- 'multiple' parameter guarantees browser bulk file selection -->
+                        <input type="file" id="file-input" accept=".jpg,.jpeg,.png" class="hidden" multiple>
+                        <div class="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center border border-slate-800 group-hover:scale-110 transition duration-300 group-hover:border-blue-500">
+                            <i class="fa-solid fa-images text-2xl text-slate-400 group-hover:text-blue-400"></i>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-slate-200">Drag & drop files here or <span class="text-blue-500 underline group-hover:text-blue-400">browse</span></p>
+                            <p class="text-xs text-slate-500 mt-1">Supports selecting multiple files at once (.jpg, .jpeg, .png)</p>
+                        </div>
+                    </div>
+
+                    <!-- Passport Guidelines Card -->
+                    <div class="bg-slate-900/60 rounded-xl p-5 border border-slate-800/60">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-info text-blue-500"></i> Official Passport Guidelines
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300 text-left">
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-emerald-500 mt-0.5"></i>
+                                <span><strong>Framing:</strong> Eye line must align with approximately 55% of canvas height from the bottom. Head size must be 50-70% of frame.</span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-emerald-500 mt-0.5"></i>
+                                <span><strong>Background:</strong> Plain, solid white or soft sky blue background with no shadows, folds, or patterns.</span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-emerald-500 mt-0.5"></i>
+                                <span><strong>File Size constraints:</strong> Final compressed output size must be strictly between 10 KB and 25 KB.</span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-emerald-500 mt-0.5"></i>
+                                <span><strong>Batch Mode:</strong> Set up adjustments once, and apply them across your entire upload queue in one click.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Interactive Cropper & Alignment Panel -->
+                <div id="panel-step-2" class="hidden space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-crop-simple text-blue-500"></i> Smart Passport Crop & Alignment
+                            </h2>
+                            <p class="text-xs text-slate-400">Locked aspect ratio is exactly 3.5:4.5. Match eye line with the red guideline.</p>
+                        </div>
+
+                        <!-- Manual vs Auto Toggle -->
+                        <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+                            <button id="toggle-auto-crop" onclick="setCropMode('auto')" class="px-4 py-1.5 rounded-lg text-xs font-medium transition duration-200 bg-blue-600 text-white">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> AI Auto Frame
+                            </button>
+                            <button id="toggle-manual-crop" onclick="setCropMode('manual')" class="px-4 py-1.5 rounded-lg text-xs font-medium transition duration-200 text-slate-400 hover:text-white">
+                                <i class="fa-solid fa-crop mr-1.5"></i> Manual Crop
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Editor Container -->
+                    <div class="relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center p-2 min-h-[350px] max-h-[500px]">
+                        <canvas id="crop-canvas" class="max-w-full max-h-[450px] object-contain rounded cursor-crosshair"></canvas>
+                        
+                        <div id="ai-processing-loader" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 hidden">
+                            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <p class="text-sm font-semibold text-slate-300">Detecting facial features and landmarks...</p>
+                        </div>
+                    </div>
+
+                    <!-- Manual Sizing Controls -->
+                    <div id="manual-controls" class="hidden bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-4">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-400 font-semibold uppercase tracking-wider">Adjustment Tools</span>
+                            <span class="text-blue-400">Drag to change crop position, scale corners to resize</span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <button onclick="adjustManualCrop('zoomIn')" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-magnifying-glass-plus"></i> Zoom In
+                            </button>
+                            <button onclick="adjustManualCrop('zoomOut')" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-magnifying-glass-minus"></i> Zoom Out
+                            </button>
+                            <button onclick="adjustManualCrop('center')" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-align-center"></i> Auto-Center
+                            </button>
+                            <button onclick="resetCropSelection()" class="p-2.5 bg-slate-850 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-400 hover:text-white flex items-center justify-center gap-2 border border-slate-800 transition">
+                                <i class="fa-solid fa-rotate-left"></i> Reset Selection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Background Removal & Replacement -->
+                <div id="panel-step-3" class="hidden space-y-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-blue-500"></i> AI Segmentation & Background Color
+                        </h2>
+                        <p class="text-xs text-slate-400">Choose your background removal engine and preferred official color.</p>
+                    </div>
+
+                    <!-- Engine Selector -->
+                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <label class="block text-xs font-semibold text-slate-300">Select Segmentation Model:</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Cloud AI -->
+                            <button onclick="setRemovalEngine('google')" id="engine-btn-google" class="flex items-center justify-center gap-3 p-3 rounded-xl border-2 bg-indigo-950/20 border-indigo-500 text-indigo-300 hover:bg-indigo-950/40 transition">
+                                <i class="fa-solid fa-cloud-bolt text-lg"></i>
+                                <div class="text-left">
+                                    <span class="block text-xs font-bold">Google AI Cloud (Gemini)</span>
+                                    <span class="block text-[10px] text-indigo-400">Ultra-sharp cloud boundary segmentation</span>
+                                </div>
+                            </button>
+                            <!-- Local Engine -->
+                            <button onclick="setRemovalEngine('local')" id="engine-btn-local" class="flex items-center justify-center gap-3 p-3 rounded-xl border-2 bg-slate-900 border-transparent text-slate-300 hover:bg-slate-850 transition">
+                                <i class="fa-solid fa-laptop text-lg"></i>
+                                <div class="text-left">
+                                    <span class="block text-xs font-bold">Local Browser Engine (MediaPipe)</span>
+                                    <span class="block text-[10px] text-slate-500">Fast, secure offline processing</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <!-- Main Canvas Preview -->
+                        <div class="md:col-span-7 bg-slate-950 rounded-2xl p-4 border border-slate-800 flex items-center justify-center min-h-[300px]">
+                            <div class="relative">
+                                <canvas id="segmentation-canvas" class="max-w-full max-h-[400px] rounded shadow-xl bg-slate-900"></canvas>
+                                <div id="bg-processing-loader" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 hidden">
+                                    <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p class="text-xs font-semibold text-slate-300" id="removal-status-text">Processing background removal...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel Controls -->
+                        <div class="md:col-span-5 space-y-6 flex flex-col justify-between">
+                            <div class="space-y-4">
+                                <label class="block text-xs font-semibold uppercase text-slate-400 tracking-wider">Official Background Color</label>
+                                
+                                <div class="grid grid-cols-2 gap-3">
+                                    <!-- White -->
+                                    <button onclick="changeBgColor('#FFFFFF')" id="bg-btn-white" class="flex flex-col items-center justify-center p-4 bg-slate-900 border-2 border-blue-500 rounded-xl hover:bg-slate-850 transition duration-200 gap-2">
+                                        <div class="w-10 h-10 rounded-full bg-white border border-slate-300 shadow-inner"></div>
+                                        <span class="text-xs font-semibold text-white">White (Standard)</span>
+                                    </button>
+                                    
+                                    <!-- Blue -->
+                                    <button onclick="changeBgColor('#1E90FF')" id="bg-btn-blue" class="flex flex-col items-center justify-center p-4 bg-slate-900 border-2 border-transparent rounded-xl hover:bg-slate-850 transition duration-200 gap-2">
+                                        <div class="w-10 h-10 rounded-full bg-[#1E90FF] border border-slate-700 shadow-inner"></div>
+                                        <span class="text-xs font-semibold text-white">Sky Blue</span>
+                                    </button>
+                                </div>
+
+                                <!-- Tuning Filters -->
+                                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-4" id="local-engine-tuning">
+                                    <h4 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-sliders text-indigo-400"></i> Edge Quality Controls (Anti-Halo)
+                                    </h4>
+                                    
+                                    <!-- Edge Sharpness -->
+                                    <div>
+                                        <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                            <span>Cutout Sharpness (Erase Halos)</span>
+                                            <span id="edge-sharpness-val">Normal</span>
+                                        </div>
+                                        <input type="range" id="edge-sharpness-slider" min="5" max="250" value="135" oninput="updateEdgeSharpness(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                                    </div>
+
+                                    <!-- Softness/Feathering -->
+                                    <div>
+                                        <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                            <span>Edge Softness Blur</span>
+                                            <span id="feather-val">1px</span>
+                                        </div>
+                                        <input type="range" id="feather-slider" min="0" max="6" value="1" oninput="updateFeatherRadius(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                                    </div>
+
+                                    <!-- Erosion -->
+                                    <div>
+                                        <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                            <span>Boundary Shrink (Erosion)</span>
+                                            <span id="erosion-val">1.0px</span>
+                                        </div>
+                                        <input type="range" id="erosion-slider" min="0" max="3" step="0.5" value="1.0" oninput="updateErosion(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Technical Size Auditing & Export Stage -->
+                <div id="panel-step-4" class="hidden space-y-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-file-export text-blue-500"></i> Technical Validation & Export
+                        </h2>
+                        <p class="text-xs text-slate-400">Compress and export compliant `.jpg` images individually or save the entire batch at once.</p>
+                    </div>
+
+                    <!-- Global Sync Controller -->
+                    <div class="bg-gradient-to-r from-blue-900/20 to-indigo-950/20 border border-blue-500/30 p-5 rounded-2xl space-y-4">
+                        <div class="flex items-center justify-between flex-wrap gap-4">
+                            <div>
+                                <h3 class="text-sm font-bold text-blue-400 flex items-center gap-2">
+                                    <i class="fa-solid fa-sync animate-spin-slow"></i> Synchronize Batch Settings
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-1">Click below to apply current crop, background, and compression metrics to all uploaded queue images.</p>
+                            </div>
+                            <button onclick="triggerBatchProcessing()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
+                                <i class="fa-solid fa-sync animate-spin-slow"></i> Apply Settings to All & Process Batch
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <!-- Left Sizing Panel -->
+                        <div class="md:col-span-6 bg-slate-950 rounded-2xl p-4 border border-slate-800 flex flex-col justify-between space-y-4">
+                            <div class="space-y-4">
+                                <span class="text-xs font-semibold uppercase text-slate-400 tracking-wider block">Target Dimensions Setup</span>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                                        <span class="text-[10px] text-slate-400 uppercase">Target Spec Size</span>
+                                        <span class="block text-sm font-bold text-white mt-0.5">3.5 × 4.5 cm</span>
+                                    </div>
+                                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                                        <span class="text-[10px] text-slate-400 uppercase">Resolution Output</span>
+                                        <span class="block text-sm font-bold text-white mt-0.5" id="output-res-text">600 × 771 px</span>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-slate-400 font-medium">Resolution Preset:</span>
+                                        <span id="res-val" class="text-emerald-400 font-bold">Standard Definition</span>
+                                    </div>
+                                    <select id="res-select" onchange="changeResolutionPreset(this.value)" class="w-full text-xs bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-blue-500">
+                                        <option value="600">Minimum Spec (600 x 771 px)</option>
+                                        <option value="900" selected>High Detail (900 x 1157 px)</option>
+                                        <option value="1200">Ultra Print (1200 x 1542 px)</option>
+                                    </select>
+                                </div>
+
+                                <hr class="border-slate-800">
+
+                                <!-- Compression Slider -->
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-slate-400 font-semibold uppercase tracking-wider">Quality Compression Scale</span>
+                                        <span id="current-kb-indicator" class="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-300">-- KB</span>
+                                    </div>
+                                    
+                                    <input type="range" id="quality-slider" min="0.05" max="1.0" step="0.01" value="0.75" oninput="updateQualitySlider(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                                    
+                                    <div class="flex justify-between text-[11px] text-slate-500">
+                                        <span>High Compression</span>
+                                        <span>Optimal Range (10-25 KB)</span>
+                                        <span>Maximum Quality</span>
+                                    </div>
+                                </div>
+
+                                <button onclick="triggerAutoTuneSize()" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold py-2.5 px-3 rounded-xl text-xs transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/10">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Tune Active Photo to 10-25 KB
+                                </button>
+                            </div>
+
+                            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-slate-400">Compliance Boundary Target (10KB - 25KB):</span>
+                                    <span id="validation-pill" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300">Invalid File Size</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400/80 mt-1">Adjust the compression slider, or click "Auto-Tune" to automatically compress to compliant dimensions.</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Output Preview & Save Options -->
+                        <div class="md:col-span-6 bg-slate-950 rounded-2xl p-4 border border-slate-800 flex flex-col justify-between items-center text-center">
+                            <div class="space-y-2 w-full">
+                                <span class="text-xs font-semibold uppercase text-slate-400 tracking-wider block text-left">Final Export Specimen</span>
+                                <div class="bg-slate-900 p-3 rounded-xl flex justify-center items-center relative group">
+                                    <img id="final-passport-img" src="" alt="Final Passport Preview" class="max-h-[280px] rounded shadow-lg border border-slate-700 object-contain">
+                                    
+                                    <!-- Floating Instruction Overlay for Mobile Browsers -->
+                                    <div class="absolute inset-x-0 bottom-0 bg-slate-950/80 p-2 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition duration-200">
+                                        <i class="fa-solid fa-mobile-screen-button"></i> Mobile: Press and hold to save directly to Gallery
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Integrated Safe Downloads Area -->
+                            <div class="w-full space-y-2 mt-4">
+                                <button onclick="downloadPassportJPG()" id="download-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white font-bold py-3 px-4 rounded-xl text-xs transition duration-200 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-download"></i> Save Current Image (.JPG)
+                                </button>
+                                
+                                <button onclick="downloadBatchAsZip()" id="zip-btn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 px-4 rounded-xl text-xs transition duration-200 border border-slate-700 flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-zipper"></i> Download Entire Batch as ZIP
+                                </button>
+                                
+                                <button onclick="triggerShowGalleryModal()" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-semibold py-2 px-4 rounded-xl text-[11px] transition duration-200 border border-emerald-500/30 flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-circle-play"></i> Safe Mobile Save Method (Recommended for Phones)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wizard Back and Forth Buttons -->
+                <div class="mt-8 pt-6 border-t border-slate-800 flex items-center justify-between">
+                    <button id="prev-btn" onclick="prevStep()" class="px-5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-slate-800 hover:bg-slate-900 transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none">
+                        <i class="fa-solid fa-arrow-left"></i> Previous Step
+                    </button>
+                    
+                    <button id="next-btn" onclick="nextStep()" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition duration-200 flex items-center gap-2">
+                        Next Step <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Sidecar Live Status Monitors & Queue -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Batch Upload File Queue -->
+                <div class="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-indigo-400"></i> Processing Batch Queue
+                        </h3>
+                        <span id="queue-counter" class="text-[10px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded-full">0/0</span>
+                    </div>
+
+                    <div id="queue-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        <div class="text-center py-8 text-xs text-slate-500">
+                            Upload images to populate batch queue.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Comparisons Preview Sidecar -->
+                <div class="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-columns text-blue-500"></i> Verification Monitor
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Original Frame -->
+                        <div>
+                            <span class="text-[11px] font-semibold text-slate-400 block mb-1.5">Original Source:</span>
+                            <div class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex items-center gap-3">
+                                <div class="w-16 h-16 rounded-lg bg-slate-950 flex items-center justify-center overflow-hidden border border-slate-800">
+                                    <img id="side-original-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100%' height='100%' fill='%231e293b'/><text x='50%' y='50%' font-size='10' fill='%23475569' text-anchor='middle' dominant-baseline='middle'>Empty</text></svg>" class="object-cover w-full h-full">
+                                </div>
+                                <div class="flex-1 overflow-hidden">
+                                    <span id="side-filename" class="text-xs text-white font-semibold truncate block">Upload image first</span>
+                                    <span id="side-filesize" class="text-[10px] text-slate-500 block">-- KB</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Processed Specimen Frame -->
+                        <div>
+                            <span class="text-[11px] font-semibold text-slate-400 block mb-1.5">Processed Specimen:</span>
+                            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col items-center justify-center">
+                                <div class="w-[140px] h-[180px] bg-slate-950 border border-slate-800 rounded-lg shadow-inner overflow-hidden relative">
+                                    <img id="side-specimen-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='180' viewBox='0 0 140 180'><rect width='100%' height='100%' fill='%230f172a'/><text x='50%' y='50%' font-size='10' fill='%23334155' text-anchor='middle' dominant-baseline='middle'>Awaiting Crop</text></svg>" class="w-full h-full object-contain">
+                                </div>
+                                <div class="text-center mt-2 space-y-0.5">
+                                    <span class="text-xs font-semibold text-white block">Real-time Preview</span>
+                                    <span class="text-[10px] text-emerald-400 block">3.5 × 4.5 cm</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compliance checklist -->
+                <div class="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-check text-emerald-500"></i> Live Quality Audit
+                    </h3>
+                    
+                    <div class="space-y-3 text-xs">
+                        <!-- Rule 1: Ratio -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span id="audit-icon-ratio" class="w-5 h-5 rounded-full flex items-center justify-center bg-slate-800 text-slate-400 text-[10px]">
+                                    <i class="fa-solid fa-circle"></i>
+                                </span>
+                                <span class="text-slate-300">Aspect Ratio (3.5:4.5)</span>
+                            </div>
+                            <span id="audit-badge-ratio" class="text-[10px] font-bold text-slate-500">Awaiting</span>
+                        </div>
+
+                        <!-- Rule 2: Pixel Bounds -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span id="audit-icon-res" class="w-5 h-5 rounded-full flex items-center justify-center bg-slate-800 text-slate-400 text-[10px]">
+                                    <i class="fa-solid fa-circle"></i>
+                                </span>
+                                <span class="text-slate-300">Resolution (&gt; 600x800px)</span>
+                            </div>
+                            <span id="audit-badge-res" class="text-[10px] font-bold text-slate-500">Awaiting</span>
+                        </div>
+
+                        <!-- Rule 3: File Format -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span id="audit-icon-format" class="w-5 h-5 rounded-full flex items-center justify-center bg-slate-800 text-slate-400 text-[10px]">
+                                    <i class="fa-solid fa-circle"></i>
+                                </span>
+                                <span class="text-slate-300">File Format (Strictly JPG)</span>
+                            </div>
+                            <span id="audit-badge-format" class="text-[10px] font-bold text-slate-500">Awaiting</span>
+                        </div>
+
+                        <!-- Rule 4: File Size -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span id="audit-icon-size" class="w-5 h-5 rounded-full flex items-center justify-center bg-slate-800 text-slate-400 text-[10px]">
+                                    <i class="fa-solid fa-circle"></i>
+                                </span>
+                                <span class="text-slate-300">File Size (10KB - 25KB)</span>
+                            </div>
+                            <span id="audit-badge-size" class="text-[10px] font-bold text-slate-500">Awaiting</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Custom Modal Dialog (Safe for iframe containment) -->
+    <div id="custom-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative text-left">
+            <div id="modal-icon-container" class="w-12 h-12 rounded-full flex items-center justify-center text-xl mb-4 bg-amber-500/10 text-amber-400">
+                <i class="fa-solid fa-triangle-exclamation" id="modal-icon"></i>
+            </div>
+            
+            <h3 id="modal-title" class="text-lg font-bold text-white mb-2">Attention Required</h3>
+            <p id="modal-body" class="text-sm text-slate-300 mb-6 leading-relaxed">Alert details...</p>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button id="modal-btn-secondary" onclick="closeCustomModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-800 transition">
+                    Cancel
+                </button>
+                <button id="modal-btn-primary" class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-lg transition">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Save Helper Dialog (Ensures gallery delivery) -->
+    <div id="gallery-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                <span class="text-sm font-bold text-white">Save Image to Photos / Gallery</span>
+                <button onclick="closeGalleryModal()" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-x"></i></button>
+            </div>
+            <p class="text-xs text-slate-400">To bypass mobile browser download containment limits, simply <strong>press and hold down</strong> on the image below, then choose <strong>"Save Image"</strong> or <strong>"Add to Photos"</strong>.</p>
+            
+            <div class="bg-slate-950 p-4 rounded-2xl flex justify-center border border-slate-800">
+                <img id="gallery-target-img" src="" class="max-h-[300px] rounded shadow-lg object-contain border border-slate-700">
+            </div>
+
+            <div class="p-3 bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs rounded-xl flex items-center gap-2 text-left leading-relaxed">
+                <i class="fa-solid fa-lightbulb text-sm"></i>
+                <span>This guarantees your device indexes the photo inside your camera roll immediately!</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Sync Progress Loader Modal -->
+    <div id="batch-loader" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 text-center">
+            <div class="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <div>
+                <h3 class="text-lg font-bold text-white">Synchronizing Batch Settings...</h3>
+                <p class="text-xs text-slate-400 mt-1">Isolating and validating images using your selected guidelines.</p>
+            </div>
+            
+            <div id="batch-progress-list" class="max-h-[200px] overflow-y-auto text-left space-y-2 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50 text-xs">
+                <!-- Sync list updates dynamically -->
+            </div>
+            <p id="batch-progress-summary" class="text-xs font-semibold text-indigo-400">Processing images...</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950/60 py-6 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-500 text-xs flex flex-wrap justify-between items-center gap-4">
+            <p>&copy; 2026 PassPort AI Editor. All rights reserved. Locally processed under absolute security parameters.</p>
+            <div class="flex gap-4">
+                <span>Terms of Service</span>
+                <span>Specifications</span>
+                <span>Privacy</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Core App Logic -->
+    <script>
+        // Global State Parameters
+        let currentStep = 1;
+        let originalImagesList = []; // Storage queue for batch uploaded images
+        let activeImageIndex = 0;
+        let originalImgObject = new Image(); 
+        
+        // Settings parameters synced across batch queue during process
+        let globalSettings = {
+            cropMode: 'auto',
+            bgColor: '#FFFFFF',
+            removalEngine: 'google', // 'google' | 'local'
+            feather: 1,
+            sharpness: 135,
+            erosion: 1.0,
+            resolution: 900,
+            quality: 0.75
+        };
+
+        // Manual Crop Rect coordinates
+        let manualCropRect = { x: 0, y: 0, width: 0, height: 0 };
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let dragHandle = null; 
+
+        // Targeted Dimensions bounds
+        let targetResHeight = 1157;
+        let targetResWidth = 900; 
+
+        // Canvas element access
+        const cropCanvas = document.getElementById('crop-canvas');
+        const cropCtx = cropCanvas.getContext('2d');
+        const segmentationCanvas = document.getElementById('segmentation-canvas');
+        const segCtx = segmentationCanvas.getContext('2d');
+
+        // AI Processor instantiations
+        let selfieSegmentation = null;
+        let faceDetector = null;
+
+        // Startup Hooks
+        window.onload = function() {
+            setupDropzone();
+            setupCanvasInteraction();
+            updateWizardUI();
+        }
+
+        function setupDropzone() {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('file-input');
+
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-blue-500', 'bg-slate-900/50');
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-blue-500', 'bg-slate-900/50');
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-blue-500', 'bg-slate-900/50');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFiles(e.target.files);
+                }
+            });
+        }
+
+        // Batch file loading handler
+        async function handleFiles(filesList) {
+            const validFiles = Array.from(filesList).filter(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                return ['jpg', 'jpeg', 'png'].includes(ext);
+            });
+
+            if (validFiles.length === 0) {
+                openCustomModal(
+                    "Compatible Formats Only",
+                    "Please upload valid portrait files (.jpg, .jpeg, or .png).",
+                    "error",
+                    "Okay"
+                );
+                return;
+            }
+
+            const originalLength = originalImagesList.length;
+
+            // Load images sequentially to maintain integrity and prevent omissions
+            for (let i = 0; i < validFiles.length; i++) {
+                try {
+                    const file = validFiles[i];
+                    const dataUrl = await readFileAsDataURL(file);
+                    
+                    originalImagesList.push({
+                        id: 'photo-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+                        name: file.name,
+                        size: file.size,
+                        dataUrl: dataUrl,
+                        processedDataUrl: null,
+                        cropRect: null,
+                        sizeKB: 0
+                    });
+                } catch (err) {
+                    console.error("Error loading file stream:", err);
+                }
+            }
+
+            activeImageIndex = originalLength; 
+            updateQueueUI();
+            loadActiveImage();
+        }
+
+        // File stream loader
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (err) => reject(err);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Load active image inside workspace
+        function loadActiveImage() {
+            if (originalImagesList.length === 0) return;
+            const activeImg = originalImagesList[activeImageIndex];
+
+            document.getElementById('side-original-img').src = activeImg.dataUrl;
+            document.getElementById('side-filename').innerText = activeImg.name;
+            document.getElementById('side-filesize').innerText = (activeImg.size / 1024).toFixed(1) + " KB";
+
+            originalImgObject = new Image();
+            originalImgObject.onload = function() {
+                cropCanvas.width = originalImgObject.width;
+                cropCanvas.height = originalImgObject.height;
+                
+                if (activeImg.cropRect) {
+                    manualCropRect = { ...activeImg.cropRect };
+                } else {
+                    let initialWidth = originalImgObject.width * 0.55;
+                    let initialHeight = initialWidth * (4.5 / 3.5);
+                    
+                    if (initialHeight > originalImgObject.height) {
+                        initialHeight = originalImgObject.height * 0.7;
+                        initialWidth = initialHeight * (3.5 / 4.5);
+                    }
+
+                    manualCropRect = {
+                        x: (originalImgObject.width - initialWidth) / 2,
+                        y: (originalImgObject.height - initialHeight) / 2,
+                        width: initialWidth,
+                        height: initialHeight
+                    };
+                    activeImg.cropRect = { ...manualCropRect };
+                }
+
+                goToStep(2);
+                
+                if (globalSettings.cropMode === 'auto') {
+                    runAiFaceDetection();
+                } else {
+                    redrawCropCanvas();
+                }
+            };
+            originalImgObject.src = activeImg.dataUrl;
+        }
+
+        // Batch Queue Sidebar View updating
+        function updateQueueUI() {
+            const queueList = document.getElementById('queue-list');
+            const counter = document.getElementById('queue-counter');
+            
+            counter.innerText = `${activeImageIndex + 1}/${originalImagesList.length}`;
+            queueList.innerHTML = '';
+
+            if (originalImagesList.length === 0) {
+                queueList.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">Awaiting uploaded images.</div>`;
+                return;
+            }
+
+            originalImagesList.forEach((img, idx) => {
+                const isActive = idx === activeImageIndex;
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition ${isActive ? 'bg-blue-600/20 border border-blue-500/50' : 'bg-slate-900 hover:bg-slate-850 border border-slate-800'}`;
+                
+                div.onclick = (e) => {
+                    if (e.target.closest('.delete-node')) return;
+                    activeImageIndex = idx;
+                    loadActiveImage();
+                    updateQueueUI();
+                };
+
+                let badge = `<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Pending</span>`;
+                if (img.processedDataUrl) {
+                    badge = `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Ready (${img.sizeKB.toFixed(0)}KB)</span>`;
+                }
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden mr-2">
+                        <img src="${img.dataUrl}" class="w-8 h-8 rounded object-cover border border-slate-800 flex-shrink-0">
+                        <div class="text-left truncate">
+                            <span class="truncate block text-slate-200 font-medium text-left">${img.name}</span>
+                            <div class="flex items-center justify-start gap-1.5 mt-0.5">${badge}</div>
+                        </div>
+                    </div>
+                    <button class="delete-node hover:text-rose-400 text-slate-600 p-1.5 transition" onclick="removeQueueImage(${idx})">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                queueList.appendChild(div);
+            });
+        }
+
+        function removeQueueImage(idx) {
+            originalImagesList.splice(idx, 1);
+            if (originalImagesList.length === 0) {
+                resetApp();
+            } else {
+                if (activeImageIndex >= originalImagesList.length) {
+                    activeImageIndex = originalImagesList.length - 1;
+                }
+                loadActiveImage();
+                updateQueueUI();
+            }
+        }
+
+        function setCropMode(mode) {
+            globalSettings.cropMode = mode;
+            const autoBtn = document.getElementById('toggle-auto-crop');
+            const manualBtn = document.getElementById('toggle-manual-crop');
+            const manualControls = document.getElementById('manual-controls');
+
+            if (mode === 'auto') {
+                autoBtn.className = "px-4 py-1.5 rounded-lg text-xs font-medium transition duration-200 bg-blue-600 text-white";
+                manualBtn.className = "px-4 py-1.5 rounded-lg text-xs font-medium transition duration-200 text-slate-400 hover:text-white";
+                manualControls.classList.add('hidden');
+                runAiFaceDetection();
+            } else {
+                manualBtn.className = "px-4 py-1.5 rounded-lg text-xs font-medium transition duration-200 bg-blue-600 text-white";
+                autoBtn.className = "px-4 py-1.5 rounded-lg text-xs font-medium transition duration-200 text-slate-400 hover:text-white";
+                manualControls.classList.remove('hidden');
+                redrawCropCanvas();
+            }
+        }
+
+        // Draw Interactive crop box & eye alignment guideline
+        function redrawCropCanvas() {
+            cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+            cropCtx.drawImage(originalImgObject, 0, 0);
+
+            cropCtx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+            cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+
+            cropCtx.save();
+            cropCtx.beginPath();
+            cropCtx.rect(manualCropRect.x, manualCropRect.y, manualCropRect.width, manualCropRect.height);
+            cropCtx.clip();
+            cropCtx.drawImage(originalImgObject, 0, 0);
+            cropCtx.restore();
+
+            cropCtx.strokeStyle = '#3b82f6';
+            cropCtx.lineWidth = 3;
+            cropCtx.strokeRect(manualCropRect.x, manualCropRect.y, manualCropRect.width, manualCropRect.height);
+
+            const eyeLineY = manualCropRect.y + (manualCropRect.height * 0.45);
+            cropCtx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+            cropCtx.setLineDash([4, 4]);
+            cropCtx.lineWidth = 1.5;
+            
+            cropCtx.beginPath();
+            cropCtx.moveTo(manualCropRect.x, eyeLineY);
+            cropCtx.lineTo(manualCropRect.x + manualCropRect.width, eyeLineY);
+            cropCtx.stroke();
+
+            const headBoxTop = manualCropRect.y + (manualCropRect.height * 0.15);
+            const headBoxBottom = manualCropRect.y + (manualCropRect.height * 0.65);
+            cropCtx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+            cropCtx.beginPath();
+            cropCtx.moveTo(manualCropRect.x + (manualCropRect.width * 0.2), headBoxTop);
+            cropCtx.lineTo(manualCropRect.x + (manualCropRect.width * 0.8), headBoxTop);
+            cropCtx.moveTo(manualCropRect.x + (manualCropRect.width * 0.2), headBoxBottom);
+            cropCtx.lineTo(manualCropRect.x + (manualCropRect.width * 0.8), headBoxBottom);
+            cropCtx.stroke();
+            cropCtx.setLineDash([]);
+
+            drawHandleCircle(manualCropRect.x, manualCropRect.y);
+            drawHandleCircle(manualCropRect.x + manualCropRect.width, manualCropRect.y);
+            drawHandleCircle(manualCropRect.x, manualCropRect.y + manualCropRect.height);
+            drawHandleCircle(manualCropRect.x + manualCropRect.width, manualCropRect.y + manualCropRect.height);
+            
+            cropCtx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+            cropCtx.font = '10px "Plus Jakarta Sans", sans-serif';
+            cropCtx.fillText("TARGET EYE LEVEL (55% HT FROM BOTTOM)", manualCropRect.x + 8, eyeLineY - 5);
+            
+            cropCtx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+            cropCtx.fillText("HEAD FRAME GUIDE", manualCropRect.x + 8, headBoxTop - 5);
+
+            if (originalImagesList[activeImageIndex]) {
+                originalImagesList[activeImageIndex].cropRect = { ...manualCropRect };
+            }
+
+            updateAudits();
+        }
+
+        function drawHandleCircle(x, y) {
+            cropCtx.beginPath();
+            cropCtx.arc(x, y, 6, 0, 2 * Math.PI);
+            cropCtx.fillStyle = '#ffffff';
+            cropCtx.fill();
+            cropCtx.strokeStyle = '#3b82f6';
+            cropCtx.lineWidth = 2;
+            cropCtx.stroke();
+        }
+
+        // Sizing & Dragging interactions setup
+        function setupCanvasInteraction() {
+            cropCanvas.addEventListener('mousedown', onMouseDown);
+            cropCanvas.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+
+            cropCanvas.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent("mousedown", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                cropCanvas.dispatchEvent(mouseEvent);
+            });
+            cropCanvas.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent("mousemove", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                cropCanvas.dispatchEvent(mouseEvent);
+            });
+            cropCanvas.addEventListener('touchend', () => {
+                const mouseEvent = new MouseEvent("mouseup", {});
+                window.dispatchEvent(mouseEvent);
+            });
+        }
+
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: ((evt.clientX - rect.left) / rect.width) * canvas.width,
+                y: ((evt.clientY - rect.top) / rect.height) * canvas.height
+            };
+        }
+
+        function onMouseDown(e) {
+            if (globalSettings.cropMode !== 'manual') return;
+            const mousePos = getMousePos(cropCanvas, e);
+            const clickTolerance = 15;
+
+            if (Math.hypot(mousePos.x - manualCropRect.x, mousePos.y - manualCropRect.y) < clickTolerance) {
+                dragHandle = 'top-left';
+            } else if (Math.hypot(mousePos.x - (manualCropRect.x + manualCropRect.width), mousePos.y - manualCropRect.y) < clickTolerance) {
+                dragHandle = 'top-right';
+            } else if (Math.hypot(mousePos.x - manualCropRect.x, mousePos.y - (manualCropRect.y + manualCropRect.height)) < clickTolerance) {
+                dragHandle = 'bottom-left';
+            } else if (Math.hypot(mousePos.x - (manualCropRect.x + manualCropRect.width), mousePos.y - (manualCropRect.y + manualCropRect.height)) < clickTolerance) {
+                dragHandle = 'bottom-right';
+            } else if (
+                mousePos.x > manualCropRect.x &&
+                mousePos.x < manualCropRect.x + manualCropRect.width &&
+                mousePos.y > manualCropRect.y &&
+                mousePos.y < manualCropRect.y + manualCropRect.height
+            ) {
+                dragHandle = 'center';
+            } else {
+                dragHandle = null;
+                return;
+            }
+
+            isDragging = true;
+            dragStart = mousePos;
+        }
+
+        function onMouseMove(e) {
+            if (!isDragging || globalSettings.cropMode !== 'manual') return;
+            const mousePos = getMousePos(cropCanvas, e);
+            const dx = mousePos.x - dragStart.x;
+            const dy = mousePos.y - dragStart.y;
+            
+            const aspect = 3.5 / 4.5;
+
+            if (dragHandle === 'center') {
+                let targetX = manualCropRect.x + dx;
+                let targetY = manualCropRect.y + dy;
+                
+                if (targetX < 0) targetX = 0;
+                if (targetX + manualCropRect.width > cropCanvas.width) targetX = cropCanvas.width - manualCropRect.width;
+                if (targetY < 0) targetY = 0;
+                if (targetY + manualCropRect.height > cropCanvas.height) targetY = cropCanvas.height - manualCropRect.height;
+
+                manualCropRect.x = targetX;
+                manualCropRect.y = targetY;
+            } else if (dragHandle) {
+                let newWidth = manualCropRect.width;
+                let newHeight = manualCropRect.height;
+
+                if (dragHandle === 'top-left' || dragHandle === 'bottom-left') {
+                    newWidth = manualCropRect.width - dx;
+                } else {
+                    newWidth = manualCropRect.width + dx;
+                }
+
+                newHeight = newWidth / aspect;
+
+                if (dragHandle === 'top-left') {
+                    manualCropRect.x = manualCropRect.x + (manualCropRect.width - newWidth);
+                    manualCropRect.y = manualCropRect.y + (manualCropRect.height - newHeight);
+                } else if (dragHandle === 'top-right') {
+                    manualCropRect.y = manualCropRect.y + (manualCropRect.height - newHeight);
+                } else if (dragHandle === 'bottom-left') {
+                    manualCropRect.x = manualCropRect.x + (manualCropRect.width - newWidth);
+                }
+
+                if (newWidth > 50 && newHeight > 50 &&
+                    manualCropRect.x >= 0 && manualCropRect.y >= 0 &&
+                    manualCropRect.x + newWidth <= cropCanvas.width &&
+                    manualCropRect.y + newHeight <= cropCanvas.height) {
+                    
+                    manualCropRect.width = newWidth;
+                    manualCropRect.height = newHeight;
+                }
+            }
+
+            dragStart = mousePos;
+            redrawCropCanvas();
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+            dragHandle = null;
+        }
+
+        function adjustManualCrop(action) {
+            const aspect = 3.5 / 4.5;
+            let change = manualCropRect.width * 0.05;
+
+            if (action === 'zoomIn') {
+                let newW = manualCropRect.width - change;
+                let newH = newW / aspect;
+                manualCropRect.x += change / 2;
+                manualCropRect.y += (manualCropRect.height - newH) / 2;
+                manualCropRect.width = newW;
+                manualCropRect.height = newH;
+            } else if (action === 'zoomOut') {
+                let newW = manualCropRect.width + change;
+                let newH = newW / aspect;
+                
+                if (manualCropRect.x - change / 2 >= 0 && manualCropRect.y - (newH - manualCropRect.height)/2 >= 0 &&
+                    manualCropRect.x + newW <= cropCanvas.width && manualCropRect.y + newH <= cropCanvas.height) {
+                    manualCropRect.x -= change / 2;
+                    manualCropRect.y -= (newH - manualCropRect.height) / 2;
+                    manualCropRect.width = newW;
+                    manualCropRect.height = newH;
+                }
+            } else if (action === 'center') {
+                manualCropRect.x = (cropCanvas.width - manualCropRect.width) / 2;
+                manualCropRect.y = (cropCanvas.height - manualCropRect.height) / 2;
+            }
+            redrawCropCanvas();
+        }
+
+        function resetCropSelection() {
+            let initialWidth = originalImgObject.width * 0.6;
+            let initialHeight = initialWidth * (4.5 / 3.5);
+            manualCropRect = {
+                x: (originalImgObject.width - initialWidth) / 2,
+                y: (originalImgObject.height - initialHeight) / 2,
+                width: initialWidth,
+                height: initialHeight
+            };
+            redrawCropCanvas();
+        }
+
+        // Auto Face Alignment AI execution
+        async function runAiFaceDetection() {
+            document.getElementById('ai-processing-loader').classList.remove('hidden');
+
+            if (!faceDetector) {
+                faceDetector = new FaceMesh({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+                });
+                faceDetector.setOptions({
+                    maxNumFaces: 1,
+                    refineLandmarks: true,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+                faceDetector.onResults(onFaceMeshResults);
+            }
+
+            await faceDetector.send({ image: originalImgObject });
+        }
+
+        function onFaceMeshResults(results) {
+            document.getElementById('ai-processing-loader').classList.add('hidden');
+            
+            if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+                showNotification("No face detected. Please calibrate manually.");
+                setCropMode('manual');
+                return;
+            }
+
+            const landmarks = results.multiFaceLandmarks[0];
+            const p10 = landmarks[10];   
+            const p152 = landmarks[152]; 
+            const p159 = landmarks[159]; 
+            const p386 = landmarks[386]; 
+
+            const imgW = originalImgObject.width;
+            const imgH = originalImgObject.height;
+
+            const topHeadY = p10.y * imgH;
+            const chinY = p152.y * imgH;
+            const leftEyeX = p159.x * imgW;
+            const leftEyeY = p159.y * imgH;
+            const rightEyeX = p386.x * imgW;
+            const rightEyeY = p386.y * imgH;
+
+            const eyeCenterX = (leftEyeX + rightEyeX) / 2;
+            const eyeCenterY = (leftEyeY + rightEyeY) / 2;
+            const headHeight = Math.abs(chinY - topHeadY) * 1.5;
+
+            let targetCropHeight = headHeight / 0.55; 
+            
+            if (targetCropHeight > imgH) {
+                targetCropHeight = imgH;
+            }
+            
+            let targetCropWidth = targetCropHeight * (3.5 / 4.5);
+            if (targetCropWidth > imgW) {
+                targetCropWidth = imgW;
+                targetCropHeight = targetCropWidth * (4.5 / 3.5);
+            }
+
+            let cropX = eyeCenterX - (targetCropWidth / 2);
+            let cropY = eyeCenterY - (targetCropHeight * 0.45);
+
+            if (cropX < 0) cropX = 0;
+            if (cropY < 0) cropY = 0;
+            if (cropX + targetCropWidth > imgW) cropX = imgW - targetCropWidth;
+            if (cropY + targetCropHeight > imgH) cropY = imgH - targetCropHeight;
+
+            manualCropRect = {
+                x: cropX,
+                y: cropY,
+                width: targetCropWidth,
+                height: targetCropHeight
+            };
+
+            redrawCropCanvas();
+        }
+
+        function setRemovalEngine(engine) {
+            globalSettings.removalEngine = engine;
+            const googleBtn = document.getElementById('engine-btn-google');
+            const localBtn = document.getElementById('engine-btn-local');
+            const localTuning = document.getElementById('local-engine-tuning');
+
+            if (engine === 'google') {
+                googleBtn.className = "flex items-center justify-center gap-3 p-3 rounded-xl border-2 bg-indigo-950/20 border-indigo-500 text-indigo-300 hover:bg-indigo-950/40 transition";
+                localBtn.className = "flex items-center justify-center gap-3 p-3 rounded-xl border-2 bg-slate-900 border-transparent text-slate-300 hover:bg-slate-850 transition";
+                localTuning.classList.add('hidden');
+            } else {
+                localBtn.className = "flex items-center justify-center gap-3 p-3 rounded-xl border-2 bg-blue-950/20 border-blue-500 text-blue-300 hover:bg-blue-950/40 transition";
+                googleBtn.className = "flex items-center justify-center gap-3 p-3 rounded-xl border-2 bg-slate-900 border-transparent text-slate-300 hover:bg-slate-850 transition";
+                localTuning.classList.remove('hidden');
+            }
+
+            runSegmentation();
+        }
+
+        async function runSegmentation() {
+            if (globalSettings.removalEngine === 'google') {
+                const colorText = globalSettings.bgColor === '#FFFFFF' ? 'pure solid white' : 'flat bright royal blue';
+                await runGoogleAiSegmentation(colorText);
+            } else {
+                await runLocalMediaPipeSegmentation();
+            }
+        }
+
+        // Google Cloud AI Segmentation Endpoint (Gemini Image Processing)
+        async function runGoogleAiSegmentation(selectedColorName) {
+            const loader = document.getElementById('bg-processing-loader');
+            const loaderText = document.getElementById('removal-status-text');
+            loader.classList.remove('hidden');
+            loaderText.innerText = "Connecting with Google AI Server...";
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = manualCropRect.width;
+            tempCanvas.height = manualCropRect.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(originalImgObject, manualCropRect.x, manualCropRect.y, manualCropRect.width, manualCropRect.height, 0, 0, manualCropRect.width, manualCropRect.height);
+            
+            const maxDim = 600;
+            let exportWidth = targetResWidth;
+            let exportHeight = targetResHeight;
+            if (exportWidth > maxDim) {
+                exportWidth = maxDim;
+                exportHeight = Math.round(maxDim * (4.5 / 3.5));
+            }
+            
+            const resizeCanvas = document.createElement('canvas');
+            resizeCanvas.width = exportWidth;
+            resizeCanvas.height = exportHeight;
+            const resizeCtx = resizeCanvas.getContext('2d');
+            resizeCtx.drawImage(tempCanvas, 0, 0, exportWidth, exportHeight);
+            
+            const base64Data = resizeCanvas.toDataURL('image/png').split(',')[1];
+            
+            const promptText = `Remove the background of this portrait image and replace it with a solid, uniform, flat ${selectedColorName} color background suitable for an official passport photo. Do NOT alter, stylize, or modify the face. Maintain absolute facial consistency and identity. Output ONLY the resulting image.`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inlineData: { mimeType: "image/png", data: base64Data } }
+                    ]
+                }],
+                generationConfig: {
+                    responseModalities: ["IMAGE"]
+                }
+            };
+
+            const apiKey = ""; 
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+
+            let success = false;
+            let delay = 1000;
+            let retries = 0;
+            let result = null;
+
+            while (retries < 5 && !success) {
+                try {
+                    loaderText.innerText = `Google AI Processing... (Attempt ${retries + 1}/5)`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('API Response Error');
+                    result = await response.json();
+                    success = true;
+                } catch (err) {
+                    retries++;
+                    if (retries >= 5) {
+                        loader.classList.add('hidden');
+                        openCustomModal(
+                            "Cloud Service Offline", 
+                            "Could not establish connection with Google Cloud. We have defaulted back to the local high-performance browser engine.",
+                            "error",
+                            "Use Local Engine",
+                            () => setRemovalEngine('local')
+                        );
+                        return;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; 
+                }
+            }
+
+            const base64ImageOut = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+            if (base64ImageOut) {
+                const finalImg = new Image();
+                finalImg.onload = function() {
+                    segmentationCanvas.width = targetResWidth;
+                    segmentationCanvas.height = targetResHeight;
+                    segCtx.clearRect(0, 0, targetResWidth, targetResHeight);
+                    segCtx.drawImage(finalImg, 0, 0, targetResWidth, targetResHeight);
+                    loader.classList.add('hidden');
+                    updateExportStage();
+                };
+                finalImg.src = `data:image/png;base64,${base64ImageOut}`;
+            } else {
+                loader.classList.add('hidden');
+                setRemovalEngine('local');
+            }
+        }
+
+        // Local segmentation using MediaPipe
+        async function runLocalMediaPipeSegmentation() {
+            document.getElementById('bg-processing-loader').classList.remove('hidden');
+            document.getElementById('removal-status-text').innerText = "Processing locally...";
+
+            if (!selfieSegmentation) {
+                selfieSegmentation = new SelfieSegmentation({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+                });
+                selfieSegmentation.setOptions({
+                    modelSelection: 1, 
+                });
+                selfieSegmentation.onResults(onLocalSegmentationResults);
+            }
+
+            const cropSourceCanvas = document.createElement('canvas');
+            cropSourceCanvas.width = manualCropRect.width;
+            cropSourceCanvas.height = manualCropRect.height;
+            const tempCtx = cropSourceCanvas.getContext('2d');
+            tempCtx.drawImage(originalImgObject, manualCropRect.x, manualCropRect.y, manualCropRect.width, manualCropRect.height, 0, 0, manualCropRect.width, manualCropRect.height);
+
+            await selfieSegmentation.send({ image: cropSourceCanvas });
+        }
+
+        function onLocalSegmentationResults(results) {
+            document.getElementById('bg-processing-loader').classList.add('hidden');
+            
+            segmentationCanvas.width = targetResWidth;
+            segmentationCanvas.height = targetResHeight;
+            segCtx.clearRect(0, 0, targetResWidth, targetResHeight);
+
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = targetResWidth;
+            maskCanvas.height = targetResHeight;
+            const maskCtx = maskCanvas.getContext('2d');
+
+            maskCtx.drawImage(results.segmentationMask, 0, 0, targetResWidth, targetResHeight);
+
+            const imgData = maskCtx.getImageData(0, 0, targetResWidth, targetResHeight);
+            const data = imgData.data;
+            const tempMaskAlpha = new Uint8Array(targetResWidth * targetResHeight);
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const intensity = data[i]; 
+                const pixelIndex = i / 4;
+                if (intensity >= globalSettings.sharpness) {
+                    tempMaskAlpha[pixelIndex] = 255; 
+                } else {
+                    tempMaskAlpha[pixelIndex] = 0;
+                }
+            }
+
+            const finalMaskAlpha = new Uint8Array(targetResWidth * targetResHeight);
+            const erosionSize = Math.round(globalSettings.erosion);
+
+            if (erosionSize > 0) {
+                for (let y = 0; y < targetResHeight; y++) {
+                    for (let x = 0; x < targetResWidth; x++) {
+                        const idx = y * targetResWidth + x;
+                        if (tempMaskAlpha[idx] === 255) {
+                            let keep = true;
+                            for (let ny = -erosionSize; ny <= erosionSize && keep; ny++) {
+                                for (let nx = -erosionSize; nx <= erosionSize; nx++) {
+                                    const py = y + ny;
+                                    const px = x + nx;
+                                    if (py >= 0 && py < targetResHeight && px >= 0 && px < targetResWidth) {
+                                        if (tempMaskAlpha[py * targetResWidth + px] === 0) {
+                                            keep = false;
+                                            break;
+                                        }
+                                    } else {
+                                        keep = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            finalMaskAlpha[idx] = keep ? 255 : 0;
+                        } else {
+                            finalMaskAlpha[idx] = 0;
+                        }
+                    }
+                }
+            } else {
+                finalMaskAlpha.set(tempMaskAlpha);
+            }
+
+            for (let i = 0; i < data.length; i += 4) {
+                const alpha = finalMaskAlpha[i / 4];
+                data[i] = alpha;     
+                data[i+1] = alpha;   
+                data[i+2] = alpha;   
+                data[i+3] = alpha;   
+            }
+            maskCtx.putImageData(imgData, 0, 0);
+
+            segCtx.fillStyle = globalSettings.bgColor;
+            segCtx.fillRect(0, 0, targetResWidth, targetResHeight);
+
+            const subjectCanvas = document.createElement('canvas');
+            subjectCanvas.width = targetResWidth;
+            subjectCanvas.height = targetResHeight;
+            const subCtx = subjectCanvas.getContext('2d');
+            subCtx.drawImage(originalImgObject, manualCropRect.x, manualCropRect.y, manualCropRect.width, manualCropRect.height, 0, 0, targetResWidth, targetResHeight);
+
+            const compositedCanvas = document.createElement('canvas');
+            compositedCanvas.width = targetResWidth;
+            compositedCanvas.height = targetResHeight;
+            const compCtx = compositedCanvas.getContext('2d');
+
+            compCtx.drawImage(subjectCanvas, 0, 0);
+            compCtx.globalCompositeOperation = 'destination-in';
+            compCtx.drawImage(maskCanvas, 0, 0);
+
+            segCtx.save();
+            if (globalSettings.feather > 0) {
+                segCtx.filter = `blur(${globalSettings.feather}px)`;
+            }
+            segCtx.drawImage(compositedCanvas, 0, 0);
+            segCtx.restore();
+
+            if (globalSettings.feather > 0) {
+                segCtx.save();
+                segCtx.globalAlpha = 0.85; 
+                segCtx.drawImage(compositedCanvas, 0, 0);
+                segCtx.restore();
+            }
+
+            updateExportStage();
+        }
+
+        function changeBgColor(color) {
+            globalSettings.bgColor = color;
+            document.getElementById('bg-btn-white').className = `flex flex-col items-center justify-center p-4 bg-slate-900 border-2 ${color === '#FFFFFF' ? 'border-blue-500' : 'border-transparent'} rounded-xl hover:bg-slate-850 transition duration-200 gap-2`;
+            document.getElementById('bg-btn-blue').className = `flex flex-col items-center justify-center p-4 bg-slate-900 border-2 ${color === '#1E90FF' ? 'border-blue-500' : 'border-transparent'} rounded-xl hover:bg-slate-850 transition duration-200 gap-2`;
+            
+            runSegmentation();
+        }
+
+        function updateEdgeSharpness(val) {
+            globalSettings.sharpness = parseInt(val);
+            const textElement = document.getElementById('edge-sharpness-val');
+            if (globalSettings.sharpness < 80) {
+                textElement.innerText = "Soft Cut";
+            } else if (globalSettings.sharpness > 180) {
+                textElement.innerText = "Maximum Crisp";
+            } else {
+                textElement.innerText = "Normal";
+            }
+            runSegmentation();
+        }
+
+        function updateFeatherRadius(val) {
+            globalSettings.feather = parseInt(val);
+            document.getElementById('feather-val').innerText = val + "px";
+            runSegmentation();
+        }
+
+        function updateErosion(val) {
+            globalSettings.erosion = parseFloat(val);
+            document.getElementById('erosion-val').innerText = val + "px";
+            runSegmentation();
+        }
+
+        function changeResolutionPreset(val) {
+            globalSettings.resolution = parseInt(val);
+            targetResWidth = globalSettings.resolution;
+            targetResHeight = Math.round(targetResWidth * (4.5 / 3.5));
+            document.getElementById('output-res-text').innerText = `${targetResWidth} × ${targetResHeight} px`;
+            
+            const resValIndicator = document.getElementById('res-val');
+            if (targetResWidth === 600) {
+                resValIndicator.innerText = "Minimum Spec";
+                resValIndicator.className = "text-amber-400 font-bold";
+            } else if (targetResWidth === 900) {
+                resValIndicator.innerText = "High Detail";
+                resValIndicator.className = "text-emerald-400 font-bold";
+            } else {
+                resValIndicator.innerText = "Ultra Print Quality";
+                resValIndicator.className = "text-blue-400 font-bold";
+            }
+
+            runSegmentation();
+        }
+
+        // ONE-CLICK BATCH SYNCHRONIZATION AND PROCESSING ENGINE
+        async function triggerBatchProcessing() {
+            if (originalImagesList.length === 0) return;
+            
+            const batchModal = document.getElementById('batch-loader');
+            const progressList = document.getElementById('batch-progress-list');
+            const summary = document.getElementById('batch-progress-summary');
+            
+            batchModal.classList.remove('hidden');
+            progressList.innerHTML = '';
+
+            let successCount = 0;
+
+            for (let i = 0; i < originalImagesList.length; i++) {
+                const img = originalImagesList[i];
+                const itemDiv = document.createElement('div');
+                itemDiv.className = "text-[11px] text-slate-300 py-1 border-b border-slate-800/50 flex justify-between";
+                itemDiv.innerHTML = `<span>Processing: ${img.name}</span> <span class="text-amber-400 animate-pulse">Running...</span>`;
+                progressList.appendChild(itemDiv);
+                
+                summary.innerText = `Processing image ${i + 1} of ${originalImagesList.length}...`;
+
+                try {
+                    const resultDataUrl = await processSingleBatchImage(img);
+                    img.processedDataUrl = resultDataUrl;
+                    
+                    const base64Len = resultDataUrl.split(',')[1].length;
+                    img.sizeKB = (base64Len * 0.75) / 1024;
+
+                    itemDiv.innerHTML = `<span>✓ Completed: ${img.name}</span> <span class="text-emerald-400 font-bold">${img.sizeKB.toFixed(1)} KB</span>`;
+                    successCount++;
+                } catch (err) {
+                    itemDiv.innerHTML = `<span>✗ Failed: ${img.name}</span> <span class="text-rose-400">Error</span>`;
+                }
+
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            summary.innerText = `Processing completed! (${successCount}/${originalImagesList.length} successfully processed)`;
+            updateQueueUI();
+            updateExportStage();
+
+            setTimeout(() => {
+                batchModal.classList.add('hidden');
+                openCustomModal(
+                    "Batch Processing Complete!",
+                    `Successfully applied global settings across all images in your queue. You can now download the ZIP package.`,
+                    "success",
+                    "Download ZIP",
+                    () => downloadBatchAsZip()
+                );
+            }, 1000);
+        }
+
+        // Processing promisified handler for individual batch items
+        function processSingleBatchImage(img) {
+            return new Promise((resolve, reject) => {
+                const testImg = new Image();
+                testImg.onload = async function() {
+                    let crop = img.cropRect;
+                    if (!crop) {
+                        let w = testImg.width * 0.55;
+                        let h = w * (4.5 / 3.5);
+                        crop = { x: (testImg.width - w)/2, y: (testImg.height - h)/2, width: w, height: h };
+                    }
+
+                    const bCanvas = document.createElement('canvas');
+                    bCanvas.width = targetResWidth;
+                    bCanvas.height = targetResHeight;
+                    const bCtx = bCanvas.getContext('2d');
+
+                    if (globalSettings.removalEngine === 'google') {
+                        const cropCanvas = document.createElement('canvas');
+                        cropCanvas.width = crop.width;
+                        cropCanvas.height = crop.height;
+                        cropCanvas.getContext('2d').drawImage(testImg, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+                        
+                        const shrinkCanvas = document.createElement('canvas');
+                        shrinkCanvas.width = targetResWidth;
+                        shrinkCanvas.height = targetResHeight;
+                        shrinkCanvas.getContext('2d').drawImage(cropCanvas, 0, 0, targetResWidth, targetResHeight);
+                        
+                        const base64Data = shrinkCanvas.toDataURL('image/png').split(',')[1];
+                        const colorText = globalSettings.bgColor === '#FFFFFF' ? 'pure solid white' : 'flat bright royal blue';
+                        
+                        const promptText = `Remove the background of this portrait image and replace it with a solid, flat ${colorText} color background. Maintain facial consistency and likeness.`;
+                        const payload = {
+                            contents: [{ parts: [{ text: promptText }, { inlineData: { mimeType: "image/png", data: base64Data } }] }],
+                            generationConfig: { responseModalities: ["IMAGE"] }
+                        };
+
+                        const apiKey = ""; 
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+                        
+                        try {
+                            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                            const data = await res.json();
+                            const b64 = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                            if (b64) {
+                                const retImg = new Image();
+                                retImg.onload = () => {
+                                    bCtx.drawImage(retImg, 0, 0, targetResWidth, targetResHeight);
+                                    resolve(bCanvas.toDataURL('image/jpeg', globalSettings.quality));
+                                };
+                                retImg.src = `data:image/png;base64,${b64}`;
+                            } else {
+                                throw new Error('No image returned');
+                            }
+                        } catch (e) {
+                            reject(e);
+                        }
+                    } else {
+                        if (!selfieSegmentation) {
+                            selfieSegmentation = new SelfieSegmentation({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}` });
+                            selfieSegmentation.setOptions({ modelSelection: 1 });
+                        }
+
+                        const cropCanvas = document.createElement('canvas');
+                        cropCanvas.width = crop.width;
+                        cropCanvas.height = crop.height;
+                        cropCanvas.getContext('2d').drawImage(testImg, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+
+                        selfieSegmentation.onResults((results) => {
+                            const maskCanvas = document.createElement('canvas');
+                            maskCanvas.width = targetResWidth;
+                            maskCanvas.height = targetResHeight;
+                            const mCtx = maskCanvas.getContext('2d');
+                            mCtx.drawImage(results.segmentationMask, 0, 0, targetResWidth, targetResHeight);
+
+                            const mData = mCtx.getImageData(0, 0, targetResWidth, targetResHeight);
+                            const pix = mData.data;
+                            const tempAlpha = new Uint8Array(targetResWidth * targetResHeight);
+
+                            for (let idx = 0; idx < pix.length; idx += 4) {
+                                tempAlpha[idx / 4] = pix[idx] >= globalSettings.sharpness ? 255 : 0;
+                            }
+
+                            const erosionSize = Math.round(globalSettings.erosion);
+                            const finalAlpha = new Uint8Array(targetResWidth * targetResHeight);
+
+                            if (erosionSize > 0) {
+                                for (let y = 0; y < targetResHeight; y++) {
+                                    for (let x = 0; x < targetResWidth; x++) {
+                                        const pixIdx = y * targetResWidth + x;
+                                        if (tempAlpha[pixIdx] === 255) {
+                                            let keep = true;
+                                            for (let ny = -erosionSize; ny <= erosionSize && keep; ny++) {
+                                                for (let nx = -erosionSize; nx <= erosionSize; nx++) {
+                                                    const py = y + ny;
+                                                    const px = x + nx;
+                                                    if (py >= 0 && py < targetResHeight && px >= 0 && px < targetResWidth) {
+                                                        if (tempAlpha[py * targetResWidth + px] === 0) {
+                                                            keep = false;
+                                                            break;
+                                                        }
+                                                    } else {
+                                                        keep = false;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            finalAlpha[pixIdx] = keep ? 255 : 0;
+                                        } else {
+                                            finalAlpha[pixIdx] = 0;
+                                        }
+                                    }
+                                }
+                            } else {
+                                finalAlpha.set(tempAlpha);
+                            }
+
+                            for (let idx = 0; idx < pix.length; idx += 4) {
+                                const val = finalAlpha[idx / 4];
+                                pix[idx] = val; pix[idx+1] = val; pix[idx+2] = val; pix[idx+3] = val;
+                            }
+                            mCtx.putImageData(mData, 0, 0);
+
+                            bCtx.fillStyle = globalSettings.bgColor;
+                            bCtx.fillRect(0, 0, targetResWidth, targetResHeight);
+
+                            const subCanvas = document.createElement('canvas');
+                            subCanvas.width = targetResWidth;
+                            subCanvas.height = targetResHeight;
+                            subCanvas.getContext('2d').drawImage(testImg, crop.x, crop.y, crop.width, crop.height, 0, 0, targetResWidth, targetResHeight);
+
+                            const compCanvas = document.createElement('canvas');
+                            compCanvas.width = targetResWidth;
+                            compCanvas.height = targetResHeight;
+                            const cCtx = compCanvas.getContext('2d');
+                            cCtx.drawImage(subCanvas, 0, 0);
+                            cCtx.globalCompositeOperation = 'destination-in';
+                            cCtx.drawImage(maskCanvas, 0, 0);
+
+                            bCtx.save();
+                            if (globalSettings.feather > 0) {
+                                bCtx.filter = `blur(${globalSettings.feather}px)`;
+                            }
+                            bCtx.drawImage(compCanvas, 0, 0);
+                            bCtx.restore();
+
+                            if (globalSettings.feather > 0) {
+                                bCtx.save();
+                                bCtx.globalAlpha = 0.85;
+                                bCtx.drawImage(compCanvas, 0, 0);
+                                bCtx.restore();
+                            }
+
+                            resolve(bCanvas.toDataURL('image/jpeg', globalSettings.quality));
+                        });
+
+                        selfieSegmentation.send({ image: cropCanvas });
+                    }
+                };
+                testImg.src = img.dataUrl;
+            });
+        }
+
+        // Zip exporter
+        function downloadBatchAsZip() {
+            const processedImages = originalImagesList.filter(img => img.processedDataUrl);
+            
+            if (processedImages.length === 0) {
+                openCustomModal(
+                    "Action Required",
+                    "Please execute the 'Process Batch' sequence before running ZIP exports.",
+                    "warning",
+                    "Process Batch",
+                    () => triggerBatchProcessing()
+                );
+                return;
+            }
+
+            const zip = new JSZip();
+            processedImages.forEach((img, i) => {
+                const base64Data = img.processedDataUrl.split(',')[1];
+                const cleanName = img.name.substring(0, img.name.lastIndexOf('.')) || img.name;
+                zip.file(`${cleanName}-passport.jpg`, base64Data, { base64: true });
+            });
+
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                const blobUrl = URL.createObjectURL(content);
+                const link = document.createElement('a');
+                link.download = `passport_photos_batch_${Date.now()}.zip`;
+                link.href = blobUrl;
+                document.body.appendChild(link);
+                link.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 200);
+            });
+        }
+
+        // Show direct mobile press & hold helper 
+        function triggerShowGalleryModal() {
+            const exportDataUrl = segmentationCanvas.toDataURL('image/jpeg', globalSettings.quality);
+            document.getElementById('gallery-target-img').src = exportDataUrl;
+            document.getElementById('gallery-modal').classList.remove('hidden');
+        }
+
+        function closeGalleryModal() {
+            document.getElementById('gallery-modal').classList.add('hidden');
+        }
+
+        function goToStep(step) {
+            if (originalImagesList.length === 0 && step > 1) {
+                openCustomModal("Image Missing", "Please upload at least one image first.", "warning", "Okay", null);
+                return;
+            }
+            currentStep = step;
+            updateWizardUI();
+        }
+
+        function nextStep() {
+            if (currentStep < 4) {
+                if (currentStep === 2) {
+                    runSegmentation();
+                }
+                goToStep(currentStep + 1);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                goToStep(currentStep - 1);
+            }
+        }
+
+        function updateWizardUI() {
+            document.getElementById('panel-step-1').classList.add('hidden');
+            document.getElementById('panel-step-2').classList.add('hidden');
+            document.getElementById('panel-step-3').classList.add('hidden');
+            document.getElementById('panel-step-4').classList.add('hidden');
+
+            document.getElementById(`panel-step-${currentStep}`).classList.remove('hidden');
+
+            for (let i = 1; i <= 4; i++) {
+                const circle = document.getElementById(`step-circle-${i}`);
+                const text = document.getElementById(`step-text-${i}`);
+                
+                if (i < currentStep) {
+                    circle.className = "w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-sm border-4 border-slate-900 shadow-lg shadow-emerald-500/10";
+                    circle.innerHTML = '<i class="fa-solid fa-check text-xs"></i>';
+                    text.className = "text-[11px] mt-2 font-semibold text-emerald-500";
+                } else if (i === currentStep) {
+                    circle.className = "w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm border-4 border-slate-900 shadow-lg shadow-blue-500/10";
+                    circle.innerHTML = i;
+                    text.className = "text-[11px] mt-2 font-semibold text-blue-500 animate-pulse";
+                } else {
+                    circle.className = "w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center font-semibold text-sm border-4 border-slate-900";
+                    circle.innerHTML = i;
+                    text.className = "text-[11px] mt-2 font-semibold text-slate-400";
+                }
+            }
+
+            const progressPct = ((currentStep - 1) / 3) * 100;
+            document.getElementById('step-line').style.width = `${progressPct}%`;
+
+            document.getElementById('prev-btn').disabled = (currentStep === 1);
+            
+            const nextBtn = document.getElementById('next-btn');
+            if (currentStep === 4) {
+                nextBtn.innerHTML = `Process Batch <i class="fa-solid fa-flag-checkered ml-1"></i>`;
+                nextBtn.className = "px-5 py-2.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg transition duration-200 flex items-center gap-2";
+                nextBtn.onclick = () => triggerBatchProcessing(); 
+            } else {
+                nextBtn.innerHTML = `Next Step <i class="fa-solid fa-arrow-right ml-1"></i>`;
+                nextBtn.className = "px-5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition duration-200 flex items-center gap-2";
+                nextBtn.onclick = nextStep;
+            }
+
+            if (currentStep === 2) {
+                redrawCropCanvas();
+            }
+
+            updateAudits();
+        }
+
+        function updateAudits() {
+            const ratioIcon = document.getElementById('audit-icon-ratio');
+            const ratioBadge = document.getElementById('audit-badge-ratio');
+            
+            if (originalImagesList.length > 0) {
+                ratioIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 text-[10px]";
+                ratioIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                ratioBadge.className = "text-[10px] font-bold text-emerald-400";
+                ratioBadge.innerText = "Ratio Valid";
+            } else {
+                ratioIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]";
+                ratioIcon.innerHTML = '<i class="fa-solid fa-circle"></i>';
+                ratioBadge.className = "text-[10px] font-bold text-slate-500";
+                ratioBadge.innerText = "Awaiting";
+            }
+
+            const resIcon = document.getElementById('audit-icon-res');
+            const resBadge = document.getElementById('audit-badge-res');
+            
+            if (originalImagesList.length > 0) {
+                if (targetResWidth >= 600 && targetResHeight >= 771) {
+                    resIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 text-[10px]";
+                    resIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    resBadge.className = "text-[10px] font-bold text-emerald-400";
+                    resBadge.innerText = `${targetResWidth}x${targetResHeight}px`;
+                } else {
+                    resIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-amber-500/20 text-amber-400 text-[10px]";
+                    resIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                    resBadge.className = "text-[10px] font-bold text-amber-400";
+                    resBadge.innerText = "Low Res";
+                }
+            } else {
+                resIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]";
+                resIcon.innerHTML = '<i class="fa-solid fa-circle"></i>';
+                resBadge.className = "text-[10px] font-bold text-slate-500";
+                resBadge.innerText = "Awaiting";
+            }
+
+            const fmtIcon = document.getElementById('audit-icon-format');
+            const fmtBadge = document.getElementById('audit-badge-format');
+            if (originalImagesList.length > 0) {
+                fmtIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 text-[10px]";
+                fmtIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                fmtBadge.className = "text-[10px] font-bold text-emerald-400";
+                fmtBadge.innerText = "JPG Ready";
+            } else {
+                fmtIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]";
+                fmtIcon.innerHTML = '<i class="fa-solid fa-circle"></i>';
+                fmtBadge.className = "text-[10px] font-bold text-slate-500";
+                fmtBadge.innerText = "Awaiting";
+            }
+        }
+
+        function updateExportStage() {
+            const exportDataUrl = segmentationCanvas.toDataURL('image/jpeg', globalSettings.quality);
+            
+            document.getElementById('final-passport-img').src = exportDataUrl;
+            document.getElementById('side-specimen-img').src = exportDataUrl;
+
+            const base64Length = exportDataUrl.split(',')[1].length;
+            const estimatedBytes = base64Length * 0.75;
+            currentKBLoad = estimatedBytes / 1024;
+
+            if (originalImagesList[activeImageIndex]) {
+                originalImagesList[activeImageIndex].processedDataUrl = exportDataUrl;
+                originalImagesList[activeImageIndex].sizeKB = currentKBLoad;
+            }
+
+            const kbIndicator = document.getElementById('current-kb-indicator');
+            kbIndicator.innerText = `${currentKBLoad.toFixed(1)} KB`;
+
+            const valPill = document.getElementById('validation-pill');
+            const sizeIcon = document.getElementById('audit-icon-size');
+            const sizeBadge = document.getElementById('audit-badge-size');
+
+            if (currentKBLoad >= 10 && currentKBLoad <= 25) {
+                valPill.innerText = "Compliant (10-25 KB)";
+                valPill.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300";
+                
+                sizeIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 text-[10px]";
+                sizeIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                sizeBadge.className = "text-[10px] font-bold text-emerald-400";
+                sizeBadge.innerText = `${currentKBLoad.toFixed(1)} KB`;
+                
+                hideNotification();
+            } else {
+                valPill.innerText = "Non-Compliant File Size";
+                valPill.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 animate-pulse";
+                
+                sizeIcon.className = "w-5 h-5 rounded-full flex items-center justify-center bg-rose-500/20 text-rose-400 text-[10px]";
+                sizeIcon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                sizeBadge.className = "text-[10px] font-bold text-rose-400";
+                sizeBadge.innerText = `${currentKBLoad.toFixed(1)} KB`;
+
+                showNotification(`Image size must be strictly between 10 KB and 25 KB. Adjust quality settings.`);
+            }
+        }
+
+        // Compression auto-tuner
+        function triggerAutoTuneSize() {
+            let solved = false;
+            let iterations = 0;
+            const maxIterations = 40;
+
+            function getKBLoad(q) {
+                const dataUrl = segmentationCanvas.toDataURL('image/jpeg', q);
+                const base64Length = dataUrl.split(',')[1].length;
+                return (base64Length * 0.75) / 1024;
+            }
+
+            let bestQuality = 0.75;
+            let testKB = getKBLoad(bestQuality);
+
+            runSegmentation();
+
+            while (!solved && iterations < maxIterations) {
+                iterations++;
+                
+                if (testKB > 25.0) {
+                    bestQuality -= 0.05;
+                    if (bestQuality < 0.15) {
+                        if (targetResWidth > 600) {
+                            targetResWidth = Math.max(600, targetResWidth - 100);
+                            targetResHeight = Math.round(targetResWidth * (4.5 / 3.5));
+                            runSegmentation();
+                        } else {
+                            bestQuality = Math.max(0.02, bestQuality - 0.02);
+                        }
+                    }
+                } else if (testKB < 10.0) {
+                    if (bestQuality < 0.98) {
+                        bestQuality += 0.05;
+                    } else {
+                        injectMicroTexture(iterations * 0.3);
+                    }
+                } else {
+                    solved = true;
+                    break;
+                }
+
+                testKB = getKBLoad(bestQuality);
+            }
+
+            globalSettings.quality = bestQuality;
+            document.getElementById('quality-slider').value = globalSettings.quality;
+            updateExportStage();
+
+            if (solved) {
+                openCustomModal(
+                    "Auto-Tune Completed!", 
+                    `Successfully calibrated compression. The resulting file size is ${testKB.toFixed(1)} KB (within the strict 10 KB - 25 KB requirements).`,
+                    "success",
+                    "Download",
+                    () => executeFileDownload()
+                );
+            } else {
+                openCustomModal(
+                    "Tuning Warning", 
+                    `Could not perfectly match the range. Nearest achieved size is ${testKB.toFixed(1)} KB.`,
+                    "warning",
+                    "Proceed to Download",
+                    () => executeFileDownload()
+                );
+            }
+        }
+
+        function injectMicroTexture(intensity) {
+            const width = segmentationCanvas.width;
+            const height = segmentationCanvas.height;
+            const imgData = segCtx.getImageData(0, 0, width, height);
+            const data = imgData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * intensity;
+                data[i] = Math.min(255, Math.max(0, data[i] + noise));         
+                data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));     
+                data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));     
+            }
+            segCtx.putImageData(imgData, 0, 0);
+        }
+
+        function updateQualitySlider(val) {
+            globalSettings.quality = parseFloat(val);
+            updateExportStage();
+        }
+
+        function downloadPassportJPG() {
+            if (currentKBLoad < 10 || currentKBLoad > 25) {
+                openCustomModal(
+                    "Compliance Alert",
+                    `Your current image size of ${currentKBLoad.toFixed(1)} KB lies outside the official 10 KB - 25 KB limit. Do you still wish to proceed?`,
+                    "warning",
+                    "Download",
+                    () => executeFileDownload()
+                );
+                return;
+            }
+
+            executeFileDownload();
+        }
+
+        // Direct downloader utilizing secure Blob construction
+        function executeFileDownload() {
+            try {
+                const exportDataUrl = segmentationCanvas.toDataURL('image/jpeg', globalSettings.quality);
+                const blob = dataURLtoBlob(exportDataUrl);
+                const blobUrl = URL.createObjectURL(blob);
+                
+                const activeImg = originalImagesList[activeImageIndex];
+                const baseName = activeImg ? activeImg.name.substring(0, activeImg.name.lastIndexOf('.')) : `passport_photo`;
+
+                const link = document.createElement('a');
+                link.download = `${baseName}-passport.jpg`;
+                link.href = blobUrl;
+                document.body.appendChild(link);
+                link.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 150);
+
+                closeCustomModal();
+            } catch (err) {
+                triggerShowGalleryModal();
+            }
+        }
+
+        function dataURLtoBlob(dataurl) {
+            var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            while(n--){
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], {type:mime});
+        }
+
+        function openCustomModal(title, bodyText, type = "info", actionText = "Confirm", onConfirmCallback = null) {
+            const modal = document.getElementById('custom-modal');
+            const mTitle = document.getElementById('modal-title');
+            const mBody = document.getElementById('modal-body');
+            const mIcon = document.getElementById('modal-icon');
+            const mIconContainer = document.getElementById('modal-icon-container');
+            const primaryBtn = document.getElementById('modal-btn-primary');
+            const secondaryBtn = document.getElementById('modal-btn-secondary');
+
+            if (type === "error") {
+                mIcon.className = "fa-solid fa-circle-xmark";
+                mIconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center text-xl mb-4 bg-rose-500/10 text-rose-400";
+                primaryBtn.className = "px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-lg shadow-lg transition";
+            } else if (type === "success") {
+                mIcon.className = "fa-solid fa-circle-check";
+                mIconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center text-xl mb-4 bg-emerald-500/10 text-emerald-400";
+                primaryBtn.className = "px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-lg transition";
+            } else if (type === "warning") {
+                mIcon.className = "fa-solid fa-triangle-exclamation";
+                mIconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center text-xl mb-4 bg-amber-500/10 text-amber-400";
+                primaryBtn.className = "px-4 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 rounded-lg shadow-lg transition";
+            } else {
+                mIcon.className = "fa-solid fa-circle-info";
+                mIconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center text-xl mb-4 bg-blue-500/10 text-blue-400";
+                primaryBtn.className = "px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-lg transition";
+            }
+
+            mTitle.innerText = title;
+            mBody.innerText = bodyText;
+            primaryBtn.innerText = actionText;
+
+            if (onConfirmCallback) {
+                secondaryBtn.classList.remove('hidden');
+                primaryBtn.onclick = function() {
+                    onConfirmCallback();
+                };
+            } else {
+                secondaryBtn.classList.add('hidden');
+                primaryBtn.onclick = function() {
+                    closeCustomModal();
+                };
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeCustomModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        function resetApp() {
+            currentStep = 1;
+            originalImagesList = [];
+            activeImageIndex = 0;
+            originalImgObject = new Image();
+            globalSettings = {
+                cropMode: 'auto',
+                bgColor: '#FFFFFF',
+                removalEngine: 'google',
+                feather: 1,
+                sharpness: 135,
+                erosion: 1.0,
+                resolution: 900,
+                quality: 0.75
+            };
+            
+            document.getElementById('side-original-img').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100%' height='100%' fill='%231e293b'/><text x='50%' y='50%' font-size='10' fill='%23475569' text-anchor='middle' dominant-baseline='middle'>Empty</text></svg>";
+            document.getElementById('side-filename').innerText = "Upload image first";
+            document.getElementById('side-filesize').innerText = "-- KB";
+            document.getElementById('side-specimen-img').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='180' viewBox='0 0 140 180'><rect width='100%' height='100%' fill='%230f172a'/><text x='50%' y='50%' font-size='10' fill='%23334155' text-anchor='middle' dominant-baseline='middle'>Awaiting Crop</text></svg>";
+            
+            updateQueueUI();
+            updateWizardUI();
+            hideNotification();
+            closeCustomModal();
+            closeGalleryModal();
+        }
+
+        function showNotification(text) {
+            document.getElementById('notification-text').innerText = text;
+            document.getElementById('notification-banner').classList.remove('hidden');
+        }
+
+        function hideNotification() {
+            document.getElementById('notification-banner').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
+
+```
